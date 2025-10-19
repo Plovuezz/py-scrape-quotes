@@ -19,7 +19,10 @@ class Quote:
 FIELDS = [field.name for field in fields(Quote)]
 
 session = requests.Session()
-session.headers.update({"User-Agent": "Mozilla/5.0 (compatible; QuotesScraper/1.0)"})
+session.headers.update(
+    {"User-Agent": "Mozilla/5.0 (compatible; QuotesScraper/1.0)"}
+)
+
 
 def get_quotes() -> Generator[Quote, None, None]:
     count = 1
@@ -52,7 +55,11 @@ def parse_quote(quote: Tag) -> Quote:
 
 
 def make_dict(quote: Quote) -> dict:
-    return {"text": quote.text, "author": quote.author, "tags": ";".join(tag for tag in quote.tags)}
+    return {
+        "text": quote.text,
+        "author": quote.author,
+        "tags": ";".join(tag for tag in quote.tags)
+    }
 
 
 def main(output_csv_path: str) -> None:
