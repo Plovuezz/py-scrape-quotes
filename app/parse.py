@@ -18,22 +18,28 @@ class Quote:
 
 FIELDS = [field.name for field in fields(Quote)]
 
+session = requests.Session()
+session.headers.update({"User-Agent": "Mozilla/5.0 (compatible; QuotesScraper/1.0)"})
 
-def get_quotes() -> Generator:
+def get_quotes() -> Generator[Quote, None, None]:
     count = 1
     while True:
         next_page = urljoin(BASE_URL, f"page/{count}/")
-        request = requests.get(next_page)
-        if request.status_code != 200:
+        try:
+            response = session.get(next_page, timeout=5)
+        except requests.RequestException:
             break
 
-        soup = BeautifulSoup(request.content, "html.parser")
+        if response.status_code != 200:
+            break
+
+        soup = BeautifulSoup(response.content, "html.parser")
         quotes = soup.select(".quote")
         if not quotes:
             break
 
         for quote in quotes:
-            yield quote
+            yield parse_quote(quote)
         count += 1
 
 
@@ -45,18 +51,16 @@ def parse_quote(quote: Tag) -> Quote:
     )
 
 
-def make_tuple(quote: Quote) -> tuple:
-    return tuple([quote.text, quote.author, quote.tags])
+def make_dict(quote: Quote) -> dict:
+    return {"text": quote.text, "author": quote.author, "tags": ";".join(tag for tag in quote.tags)}
 
 
 def main(output_csv_path: str) -> None:
     with open(output_csv_path, "w", encoding="utf-8", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(FIELDS)
-
+        writer = csv.DictWriter(file, fieldnames=FIELDS)
+        writer.writeheader()
         for quote in get_quotes():
-            quote_obj = parse_quote(quote)
-            writer.writerow(make_tuple(quote_obj))
+            writer.writerow(make_dict(quote))
 
 
 if __name__ == "__main__":
